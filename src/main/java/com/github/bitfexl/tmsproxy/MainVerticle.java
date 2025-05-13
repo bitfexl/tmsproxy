@@ -2,6 +2,7 @@ package com.github.bitfexl.tmsproxy;
 
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.github.bitfexl.tmsproxy.config.ConfigParser;
+import com.github.bitfexl.tmsproxy.config.InvalidConfigurationException;
 import com.github.bitfexl.tmsproxy.handlers.DefaultHandler;
 import com.github.bitfexl.tmsproxy.handlers.TMSHandler;
 import io.vertx.core.AbstractVerticle;
@@ -49,20 +50,26 @@ public class MainVerticle extends AbstractVerticle {
     public static void main(String[] args) {
         final long startTime = System.currentTimeMillis();
 
+        final Vertx vertx = Vertx.vertx();
+
         String configFile = "tmsconfig.json";
         if (args.length > 0) {
             configFile = args[0];
         }
         Config config;
         try {
-            config = readConfig(configFile);
+            config = readConfig(configFile, vertx);
         } catch (Exception ex) {
-            log.error("Error loading config file '{}'.", configFile, ex);
+            if (ex instanceof InvalidConfigurationException) {
+                log.error("Error loading config file '{}': {}", configFile, ex.getMessage());
+            } else {
+                log.error("Error loading config file '{}'.", configFile, ex);
+            }
             System.exit(1);
             return;
         }
 
-        Vertx.vertx().deployVerticle(new MainVerticle(config))
+        vertx.deployVerticle(new MainVerticle(config))
                 .onComplete(event -> {
                     long endTime = System.currentTimeMillis();
                     if (event.succeeded()) {
@@ -74,10 +81,10 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     @SneakyThrows
-    public static Config readConfig(String configFile) {
+    public static Config readConfig(String configFile, Vertx vertx) {
         try (final InputStream in = new FileInputStream(configFile)) {
             final String config = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            return new ConfigParser().parseConfig((JsonObject)Json.decodeValue(config));
+            return new ConfigParser().parseConfig((JsonObject)Json.decodeValue(config), vertx);
         }
     }
 }

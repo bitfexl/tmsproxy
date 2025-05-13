@@ -1,16 +1,9 @@
-package com.github.bitfexl.tmsproxy.config;
+package com.github.bitfexl.tmsproxy.data;
 
-
-import lombok.Getter;
-
-public class TileSource {
-    @Getter
-    private final String name;
-
+public class TileSourceUrl {
     private final String[] urlParts;
 
-    public TileSource(String name, String url) {
-        this.name = name;
+    public TileSourceUrl(String url) {
         urlParts = url.split("[{}]");
         for (int i = 0; i < urlParts.length; i++) {
             if (urlParts[i].length() == 1) {
