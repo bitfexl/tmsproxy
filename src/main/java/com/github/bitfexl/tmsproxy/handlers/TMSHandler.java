@@ -23,7 +23,14 @@ public class TMSHandler implements Handler<RoutingContext> {
     public TMSHandler(Router router, Vertx vertx, Config config) {
         router.route(HttpMethod.GET, "/tms/:name/:z/:x/:y").handler(this);
 
-        httpClient = vertx.createHttpClient();
+        httpClient = vertx.createHttpClient(
+                new HttpClientOptions()
+                        .setProtocolVersion(HttpVersion.HTTP_2)
+                        .setUseAlpn(true)
+                        .setMaxPoolSize(40)
+                        .setPoolEventLoopSize(4)
+                );
+
         this.config = config;
     }
 
