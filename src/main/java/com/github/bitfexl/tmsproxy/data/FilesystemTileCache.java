@@ -3,10 +3,7 @@ package com.github.bitfexl.tmsproxy.data;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.file.OpenOptions;
-import io.vertx.core.streams.WriteStream;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
@@ -25,19 +22,10 @@ public class FilesystemTileCache implements TileCache {
         fs = vertx.fileSystem();
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Future<WriteStream<Buffer>> store(String tileSetName, int z, int x, int y, String extension) {
+    public void store(String tileSetName, int z, int x, int y, Buffer file, String extension) {
         final String path = getPath(directory, tileSetName, z, x, y);
-        return fs.mkdirs(path)
-                .compose(event -> {
-                    final Future<AsyncFile> fileFuture = fs.open(path + fileSeparator + "tile." + extension, new OpenOptions().setCreate(true).setWrite(true));
-                    return (Future<WriteStream<Buffer>>) (Object) fileFuture;
-                })
-                .recover(throwable -> {
-                        log.error("Path '{}' exists but is not a directory.", path);
-                        return Future.failedFuture(throwable);
-                });
+        fs.mkdirs(path).onSuccess(__ -> fs.writeFile(path + fileSeparator + "tile." + extension, file));
     }
 
     @Override

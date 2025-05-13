@@ -3,13 +3,9 @@ package com.github.bitfexl.tmsproxy.handlers;
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.github.bitfexl.tmsproxy.data.TileCache;
 import com.github.bitfexl.tmsproxy.data.TileSource;
-import com.github.bitfexl.tmsproxy.util.DuplicatingWriteStream;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
-import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
@@ -114,30 +110,15 @@ public class TMSHandler implements Handler<RoutingContext> {
                         return;
                     }
 
-                    final Promise<WriteStream<Buffer>> responseWriteStream = Promise.promise();
-
-                    if (tileCache != null) {
-                        upstreamResponse.pause();
-
-                        tileCache.store(name, z, x , y, contentType.split("/", 2)[1])
-                                .onSuccess(cacheStream -> {
-                                    final DuplicatingWriteStream<Buffer> writeStream = new DuplicatingWriteStream<>(cacheStream, response);
-                                    response.endHandler(event -> writeStream.removeB());
-                                    response.exceptionHandler(event -> writeStream.removeB());
-                                    responseWriteStream.complete(writeStream);
-                                })
-                                .onFailure(t -> {
-                                    log.error("Error opening cache write stream.", t);
-                                    responseWriteStream.complete(response);
-                                });
-                    } else {
-                        responseWriteStream.complete(response);
-                    }
-
-                    response.setStatusCode(upstreamResponse.statusCode());
-                    response.putHeader("Content-Type", contentType);
-                    response.putHeader("Content-Length", upstreamResponse.getHeader("Content-Length"));
-                    responseWriteStream.future().onSuccess(upstreamResponse::pipeTo);
+                    upstreamResponse.body().onSuccess(file -> {
+                        if (tileCache != null) {
+                            tileCache.store(name, z, x, y, file, contentType.split("/", 2)[1]);
+                        }
+                        response.setStatusCode(upstreamResponse.statusCode());
+                        response.putHeader("Content-Type", contentType);
+                        response.putHeader("Content-Length", upstreamResponse.getHeader("Content-Length"));
+                        response.end(file);
+                    }).onFailure(t -> closeResponseUpstreamError(response));
                 })
                 .onFailure(t -> {
                     log.error("Error forwarding request to upstream server.", t);
