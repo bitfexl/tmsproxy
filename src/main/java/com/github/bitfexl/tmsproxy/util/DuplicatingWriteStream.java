@@ -6,7 +6,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.streams.WriteStream;
 
 public class DuplicatingWriteStream<T> implements WriteStream<T> {
-    private final WriteStream<T> a, b;
+    private final WriteStream<T> a;
+    private volatile WriteStream<T> b;
 
     private volatile boolean aDrainHandlerCalled, bDrainHandlerCalled;
 
@@ -15,16 +16,25 @@ public class DuplicatingWriteStream<T> implements WriteStream<T> {
         this.b = b;
     }
 
+    public void removeB() {
+        b = null;
+    }
+
     @Override
     public WriteStream<T> exceptionHandler(Handler<Throwable> handler) {
         a.exceptionHandler(handler);
+        if (b != null) {
         b.exceptionHandler(handler);
+        }
         return this;
     }
 
     @Override
     public Future<Void> write(T data) {
-        return Future.all(a.write(data), b.write(data)).map((Void)null);
+        if (b != null) {
+            return Future.all(a.write(data), b.write(data)).map((Void) null);
+        }
+        return a.write(data);
     }
 
     @Override
@@ -34,7 +44,10 @@ public class DuplicatingWriteStream<T> implements WriteStream<T> {
 
     @Override
     public Future<Void> end() {
-        return Future.all(a.end(), b.end()).map((Void)null);
+        if (b != null) {
+            return Future.all(a.end(), b.end()).map((Void) null);
+        }
+        return a.end();
     }
 
     @Override
@@ -45,13 +58,15 @@ public class DuplicatingWriteStream<T> implements WriteStream<T> {
     @Override
     public WriteStream<T> setWriteQueueMaxSize(int maxSize) {
         a.setWriteQueueMaxSize(maxSize);
-        b.setWriteQueueMaxSize(maxSize);
+        if (b != null) {
+            b.setWriteQueueMaxSize(maxSize);
+        }
         return this;
     }
 
     @Override
     public boolean writeQueueFull() {
-        return a.writeQueueFull() || b.writeQueueFull();
+        return a.writeQueueFull() || (b != null && b.writeQueueFull());
     }
 
     @Override
@@ -61,17 +76,19 @@ public class DuplicatingWriteStream<T> implements WriteStream<T> {
 
         a.drainHandler(__ -> {
             aDrainHandlerCalled = true;
-            if (bDrainHandlerCalled) {
+            if (bDrainHandlerCalled || b == null) {
                 handler.handle(null);
             }
         });
 
-        b.drainHandler(__ -> {
-            bDrainHandlerCalled = true;
-            if (aDrainHandlerCalled) {
-                handler.handle(null);
-            }
-        });
+        if (b != null) {
+            b.drainHandler(__ -> {
+                bDrainHandlerCalled = true;
+                if (aDrainHandlerCalled) {
+                    handler.handle(null);
+                }
+            });
+        }
 
         return this;
     }

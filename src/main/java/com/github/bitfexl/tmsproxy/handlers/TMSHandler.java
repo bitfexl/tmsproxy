@@ -120,7 +120,12 @@ public class TMSHandler implements Handler<RoutingContext> {
                         upstreamResponse.pause();
 
                         tileCache.store(name, z, x , y, contentType.split("/", 2)[1])
-                                .onSuccess(cacheStream -> responseWriteStream.complete(new DuplicatingWriteStream<>(response, cacheStream)))
+                                .onSuccess(cacheStream -> {
+                                    final DuplicatingWriteStream<Buffer> writeStream = new DuplicatingWriteStream<>(cacheStream, response);
+                                    response.endHandler(event -> writeStream.removeB());
+                                    response.exceptionHandler(event -> writeStream.removeB());
+                                    responseWriteStream.complete(writeStream);
+                                })
                                 .onFailure(t -> {
                                     log.error("Error opening cache write stream.", t);
                                     responseWriteStream.complete(response);
