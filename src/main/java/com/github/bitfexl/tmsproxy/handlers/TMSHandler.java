@@ -3,7 +3,9 @@ package com.github.bitfexl.tmsproxy.handlers;
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.github.bitfexl.tmsproxy.data.TileCache;
 import com.github.bitfexl.tmsproxy.data.TileSource;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.ext.web.Router;
@@ -36,28 +38,40 @@ public class TMSHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext ctx) {
+        final long requestReceivedTime = System.currentTimeMillis();
+
         try {
             final String name = ctx.pathParam("name");
             final int z = Integer.parseInt(ctx.pathParam("z"));
             final int x = Integer.parseInt(ctx.pathParam("x"));
             final int y = Integer.parseInt(ctx.pathParam("y").split(DOT_PATTERN)[0]);
-            handleTmsRequest(ctx, name, z, x, y);
+            handleTmsRequest(ctx, name, z, x, y).onComplete(event -> {
+                if (event.succeeded()) {
+                    final long requestCompleteTime = System.currentTimeMillis();
+                    final long time = requestCompleteTime - requestReceivedTime;
+                    log.info("Request finished after {}ms.", time);
+                } else {
+                    log.info("Request failed: {}", event.cause().getMessage());
+                }
+            });
+
+
         } catch (NumberFormatException ex) {
             ctx.next();
         }
     }
 
-    private void handleTmsRequest(RoutingContext ctx, String name, int z, int x, int y) {
+    private Future<Void> handleTmsRequest(RoutingContext ctx, String name, int z, int x, int y) {
         final TileSource tileSource = config.getTileSources().get(name);
 
         if (tileSource == null) {
             ctx.next();
-            return;
+            return Future.failedFuture("No tile source.");
         }
 
         if (z < tileSource.getMinZoom() || z > tileSource.getMaxZoom()) {
             ctx.next();
-            return;
+            return Future.failedFuture("Invalid zoom.");
         }
 
         final TileCache tileCache;
@@ -71,25 +85,29 @@ public class TMSHandler implements Handler<RoutingContext> {
             tileCache = null;
         }
 
+        final Promise<Void> requestCompletePromise = Promise.promise();
+
         if (tileCache != null) {
             tileCache.retrieve(name, z, x, y).onComplete(event -> {
                 if (event.succeeded() && !event.result().isEmpty()) {
                     ctx.response().putHeader("Content-Type", "image/" + event.result().extension());
                     if (event.result().fileContents() != null) {
-                        ctx.response().end(event.result().fileContents());
+                        ctx.response().end(event.result().fileContents()).onComplete(__ -> requestCompletePromise.complete());
                     } else {
-                        ctx.response().sendFile(event.result().filePath());
+                        ctx.response().sendFile(event.result().filePath()).onComplete(__ -> requestCompletePromise.complete());
                     }
                 } else {
-                    requestAndCache(ctx, name, z, x, y, tileSource, tileCache);
+                    requestAndCache(ctx, name, z, x, y, tileSource, tileCache, requestCompletePromise);
                 }
             });
         } else {
-            requestAndCache(ctx, name, z, x, y, tileSource, null);
+            requestAndCache(ctx, name, z, x, y, tileSource, null, requestCompletePromise);
         }
+
+        return requestCompletePromise.future();
     }
 
-    private void requestAndCache(RoutingContext ctx, String name, int z, int x, int y, TileSource tileSource, TileCache tileCache) {
+    private void requestAndCache(RoutingContext ctx, String name, int z, int x, int y, TileSource tileSource, TileCache tileCache, Promise<Void> requestCompletePromise) {
         final HttpServerResponse response = ctx.response();
         final String url = tileSource.buildUrl(z, x, y);
 
@@ -102,18 +120,21 @@ public class TMSHandler implements Handler<RoutingContext> {
                         if (upstreamResponse.statusCode() == 404) {
                             // will probably be a common "error", handle with next route or 404
                             ctx.next();
+                            requestCompletePromise.fail("Resource not found by upstream server.");
                             return;
                         }
 
                         // todo: retry
                         log.warn("Upstream server responded with status code '{} {}' for '{}'.", upstreamResponse.statusCode(), upstreamResponse.statusMessage(), url);
                         closeResponseUpstreamError(response);
+                        requestCompletePromise.fail("Upstream server responded with " + upstreamResponse.statusCode() + ".");
                         return;
                     }
                     if (!contentType.startsWith("image/")) {
                         // todo: handle error, retry with different source
                         log.warn("Content type should be an image subtype but got '{}' for '{}'.", contentType, url);
                         closeResponseUpstreamError(response);
+                        requestCompletePromise.fail("Content type is '" + contentType + "' but should be an image subtype.");
                         return;
                     }
 
@@ -125,11 +146,16 @@ public class TMSHandler implements Handler<RoutingContext> {
                         response.putHeader("Content-Type", contentType);
                         response.putHeader("Content-Length", upstreamResponse.getHeader("Content-Length"));
                         response.end(file);
-                    }).onFailure(t -> closeResponseUpstreamError(response));
+                        requestCompletePromise.complete();
+                    }).onFailure(t -> {
+                        closeResponseUpstreamError(response);
+                        requestCompletePromise.fail("Error sending response body.");
+                    });
                 })
                 .onFailure(t -> {
                     log.error("Error forwarding request to upstream server.", t);
                     closeResponseUpstreamError(response);
+                    requestCompletePromise.fail("Error forwarding request to upstream server.");
                 });
     }
 
