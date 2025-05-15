@@ -1,8 +1,12 @@
 package com.github.bitfexl.tmsproxy;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.github.bitfexl.tmsproxy.config.ConfigParser;
 import com.github.bitfexl.tmsproxy.config.InvalidConfigurationException;
+import com.github.bitfexl.tmsproxy.config.RawConfig;
 import com.github.bitfexl.tmsproxy.handlers.DefaultHandler;
 import com.github.bitfexl.tmsproxy.handlers.TMSHandler;
 import io.vertx.core.AbstractVerticle;
@@ -11,6 +15,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.jackson.DatabindCodec;
+import io.vertx.core.spi.json.JsonCodec;
 import io.vertx.ext.web.Router;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -56,7 +62,7 @@ public class MainVerticle extends AbstractVerticle {
         if (args.length > 0) {
             configFile = args[0];
         }
-        Config config;
+        RawConfig config;
         try {
             config = readConfig(configFile, vertx);
         } catch (Exception ex) {
@@ -69,7 +75,7 @@ public class MainVerticle extends AbstractVerticle {
             return;
         }
 
-        vertx.deployVerticle(new MainVerticle(config))
+        vertx.deployVerticle(new MainVerticle(null))
                 .onComplete(event -> {
                     long endTime = System.currentTimeMillis();
                     if (event.succeeded()) {
@@ -81,10 +87,11 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     @SneakyThrows
-    public static Config readConfig(String configFile, Vertx vertx) {
+    public static RawConfig readConfig(String configFile, Vertx vertx) {
         try (final InputStream in = new FileInputStream(configFile)) {
+            final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             final String config = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            return new ConfigParser().parseConfig((JsonObject)Json.decodeValue(config), vertx);
+            return objectMapper.readValue(config, RawConfig.class);
         }
     }
 }
