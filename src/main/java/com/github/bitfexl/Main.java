@@ -21,6 +21,8 @@ public class Main {
         final int port = Objects.requireNonNullElse(config.port(), 80);
         final TMSRepository tmsRepository = new TMSRepository(config);
 
+        final int CACHE_MAX_AGE_SECONDS = 86400;
+
         final Undertow server = Undertow.builder()
                 .addHttpListener(port, "localhost")
                 .setHandler(new BlockingHandler(new HttpHandler() {
@@ -67,6 +69,7 @@ public class Main {
                             if (result.isSizeKnown()) {
                                 exchange.setResponseContentLength(result.size());
                             }
+                            exchange.getResponseHeaders().add(Headers.CACHE_CONTROL, "public,max-age=" + CACHE_MAX_AGE_SECONDS);
 
                             if (result.fileContents() != null) {
                                 try (final OutputStream out = exchange.getOutputStream(); final InputStream in = result.fileContents()) {
