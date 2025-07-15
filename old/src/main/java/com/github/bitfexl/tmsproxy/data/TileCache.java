@@ -11,7 +11,7 @@ public interface TileCache {
      * @param x The x parameter of the file.
      * @param y The y parameter of the file.
      * @param file The file contents to store.
-     * @param extension The file extension e.g. jpeg, png, ... (subtype of image/... mediatype).
+     * @param extension The file mediaType e.g. jpeg, png, ... (subtype of image/... mediatype).
      */
     void store(String tileSetName, int z, int x, int y, Buffer file, String extension);
 
