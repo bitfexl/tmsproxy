@@ -16,26 +16,24 @@ public record TileCacheResult(String mediaType, String filePath, InputStream fil
 
     public static TileCacheResult NO_CONTENT_EXPIRED = new TileCacheResult(null, null, null, 0, true, true);
 
-    public static TileCacheResult ofFilePath(String filePath, int size) {
-        return ofFilePath(filePath, size, false);
+    public static TileCacheResult ofFilePath(String mediaType, String filePath, int size) {
+        return ofFilePath(mediaType, filePath, size, false);
     }
 
     public static TileCacheResult ofFileContents(String mediaType, InputStream fileContents, int size) {
         return ofFileContents(mediaType, fileContents, size, false);
     }
 
-    public static TileCacheResult expiredOfFilePath(String filePath, int size) {
-        return ofFilePath(filePath, size, true);
+    public static TileCacheResult expiredOfFilePath(String mediaType, String filePath, int size) {
+        return ofFilePath(mediaType, filePath, size, true);
     }
 
     public static TileCacheResult expiredOfFileContents(String mediaType, InputStream fileContents, int size) {
         return ofFileContents(mediaType, fileContents, size, true);
     }
 
-    public static TileCacheResult ofFilePath(String filePath, int size, boolean expired) {
-        final String[] parts = filePath.split("[/\\\\]");
-        final String lastPart = parts[parts.length - 1];
-        return new TileCacheResult(lastPart.split("\\.", 2)[1], filePath, null, size, expired, false);
+    public static TileCacheResult ofFilePath(String mediaType, String filePath, int size, boolean expired) {
+        return new TileCacheResult(mediaType, filePath, null, size, expired, false);
     }
 
     public static TileCacheResult ofFileContents(String mediaType, InputStream fileContents, int size, boolean expired) {

@@ -7,27 +7,28 @@ import java.io.InputStream;
 public interface TileCache {
     static TileCache create(TileCacheConfig config) {
         // TODO: implement
-        return new TileCache() {
-            @Override
-            public TileCacheConfig getConfig() {
-                return config;
-            }
-
-            @Override
-            public void store(String tileSetName, int z, int x, int y, InputStream file, String mediaType) {
-
-            }
-
-            @Override
-            public void storeNoContent(String tileSetName, int z, int x, int y) {
-
-            }
-
-            @Override
-            public TileCacheResult retrieve(String tileSetName, int z, int x, int y) {
-                return TileCacheResult.EMPTY;
-            }
-        };
+        return new FilesystemTileCache(config);
+//        return new TileCache() {
+//            @Override
+//            public TileCacheConfig getConfig() {
+//                return config;
+//            }
+//
+//            @Override
+//            public void store(String tileSetName, int z, int x, int y, InputStream file, String mediaType) {
+//
+//            }
+//
+//            @Override
+//            public void storeNoContent(String tileSetName, int z, int x, int y) {
+//
+//            }
+//
+//            @Override
+//            public TileCacheResult retrieve(String tileSetName, int z, int x, int y) {
+//                return TileCacheResult.EMPTY;
+//            }
+//        };
     }
 
     /**

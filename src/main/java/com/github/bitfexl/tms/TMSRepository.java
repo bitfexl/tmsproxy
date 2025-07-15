@@ -3,7 +3,9 @@ package com.github.bitfexl.tms;
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.github.bitfexl.tmsproxy.config.TileCacheConfig;
 import com.github.bitfexl.tmsproxy.config.TileSourceConfig;
+import lombok.SneakyThrows;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,13 +56,17 @@ public class TMSRepository {
         }
 
         public static TileResult ofFetchResult(TileHTTPClient.TileFetchResult result) {
+            return ofFetchResult(result, result.tile());
+        }
+
+        public static TileResult ofFetchResult(TileHTTPClient.TileFetchResult result, InputStream contents) {
             if (result.failure()) {
                 return null;
             }
             if (result.noContent()) {
                 return NO_CONTENT;
             }
-            return new TileResult(null, result.tile(), result.size(), result.mediaType());
+            return new TileResult(null, contents, result.size(), result.mediaType());
         }
 
         /**
@@ -88,6 +94,7 @@ public class TMSRepository {
         return getTile(source, z, x, y);
     }
 
+    @SneakyThrows
     private TileResult getTile(TileSource source, int z, int x, int y) {
         if (source.hasCache()) {
             final TileCacheResult cacheResult = source.getCache().retrieve(source.getConfig().name(), z, x, y);
@@ -95,15 +102,21 @@ public class TMSRepository {
             if (cacheResult.isEmpty() || cacheResult.expired()) {
                 final TileHTTPClient.TileFetchResult fetchResult = fetchTile(source, z, x, y);
                 if (!fetchResult.failure()) {
-                    // TODO: properly update cache
-                    source.getCache().store(source.getConfig().name(), z, x, y, null, "");
-                    return TileResult.ofFetchResult(fetchResult);
+                    // TODO: optimize use duplicated input stream, store asynchronously
+                    try (InputStream in = fetchResult.tile()) {
+                        final byte[] contents = in.readAllBytes();
+                        source.getCache().store(source.getConfig().name(), z, x, y, new ByteArrayInputStream(contents), fetchResult.mediaType());
+                        System.out.println("cache miss");
+                        return TileResult.ofFetchResult(fetchResult, new ByteArrayInputStream(contents));
+                    }
                 }
             }
 
+            System.out.println("cache hit");
             return TileResult.ofCacheResult(cacheResult);
         }
 
+        System.out.println("cache miss");
         return TileResult.ofFetchResult(fetchTile(source, z, x, y));
     }
 
