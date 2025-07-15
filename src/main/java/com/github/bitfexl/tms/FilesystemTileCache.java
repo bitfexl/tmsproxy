@@ -36,7 +36,7 @@ public class FilesystemTileCache implements TileCache {
         for (final File file : directory.listFiles()) {
             file.delete();
         }
-        try (final OutputStream out = new FileOutputStream(path + "/" + mediaType.replace('/', '_')); contents) {
+        try (final OutputStream out = new FileOutputStream(path + "/tile." + mediaType.replace('/', '_')); contents) {
             contents.transferTo(out);
         }
     }
@@ -55,11 +55,11 @@ public class FilesystemTileCache implements TileCache {
             return TileCacheResult.EMPTY;
         }
         final String fileName = files[0];
-        if (fileName.equals("no_content")) {
+        if (fileName.equals("tile.no_content")) {
             return TileCacheResult.NO_CONTENT;
         }
         final String completeFilename = path + "/" + fileName;
         final int size = (int) new File(completeFilename).length();
-        return TileCacheResult.ofFilePath(fileName.replace('_', '/'), completeFilename, size);
+        return TileCacheResult.ofFilePath(fileName.substring(5).replace('_', '/'), completeFilename, size);
     }
 }
