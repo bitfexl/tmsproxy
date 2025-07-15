@@ -8,10 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
 
+import static com.github.bitfexl.tmsproxy.data.FileSystemUtils.getPath;
+
 @Slf4j
 public class FilesystemTileCache implements TileCache {
-    private final static String fileSeparator = System.getProperty("file.separator");
-
     private final String directory;
 
     private final FileSystem fs;
@@ -25,7 +25,7 @@ public class FilesystemTileCache implements TileCache {
     @Override
     public void store(String tileSetName, int z, int x, int y, Buffer file, String extension) {
         final String path = getPath(directory, tileSetName, z, x, y);
-        fs.mkdirs(path).onSuccess(__ -> fs.writeFile(path + fileSeparator + "tile." + extension, file));
+        fs.mkdirs(path).onSuccess(__ -> fs.writeFile(getPath(path, "tile." + extension), file));
     }
 
     @Override
@@ -41,18 +41,5 @@ public class FilesystemTileCache implements TileCache {
 
             return TileCacheResult.EMPTY;
         });
-    }
-
-    private String getPath(Object... parts) {
-        final StringBuilder path = new StringBuilder();
-
-        for (Object part : parts) {
-            if (!path.isEmpty()) {
-                path.append(fileSeparator);
-            }
-            path.append(part);
-        }
-
-        return path.toString();
     }
 }

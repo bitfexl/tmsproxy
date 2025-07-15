@@ -1,6 +1,7 @@
 package com.github.bitfexl.tmsproxy.config;
 
 import com.github.bitfexl.tmsproxy.data.FilesystemTileCache;
+import com.github.bitfexl.tmsproxy.data.TileCacheResult;
 import com.github.bitfexl.tmsproxy.data.TileSource;
 import com.github.bitfexl.tmsproxy.data.TileSourceUrl;
 import io.vertx.core.Vertx;
@@ -9,6 +10,7 @@ import io.vertx.core.json.JsonObject;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 
 public class ConfigParser {
     public static final int DEFAULT_PORT = 80;
@@ -46,13 +48,18 @@ public class ConfigParser {
                 throw new InvalidConfigurationException("Duplicate tile sources named '" + name + "' found.");
             }
 
-            final JsonArray sources;
+            final List<TileSourceUrl> sources;
             try {
-                sources = tileJsonConfig.getJsonArray("sources");
+                final JsonArray rawSources = tileJsonConfig.getJsonArray("sources");
+                if (rawSources == null) {
+                    sources = List.of();
+                } else {
+                    sources = rawSources.stream().map(url -> new TileSourceUrl((String) url)).toList();
+                }
             } catch (RuntimeException ex) {
                 throw new InvalidConfigurationException("'sources' must be an array of tile source urls.", ex);
             }
-            if (sources == null || sources.isEmpty()) {
+            if (sources.isEmpty()) {
                 throw new InvalidConfigurationException("At least one tile source url must be provided with the 'tiles.sources' configuration array.");
             }
 
@@ -62,7 +69,7 @@ public class ConfigParser {
                             tileJsonConfig.getString("cache"),
                             tileJsonConfig.getInteger("minZoom", DEFAULT_TILE_MIN_ZOOM),
                             tileJsonConfig.getInteger("maxZoom", DEFAULT_TILE_MAX_ZOOM),
-                            sources.stream().map(url -> new TileSourceUrl((String)url)).toList()
+                            sources
                     )
             );
         }
