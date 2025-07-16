@@ -106,17 +106,14 @@ public class TMSRepository {
                     try (InputStream in = fetchResult.tile()) {
                         final byte[] contents = in.readAllBytes();
                         source.getCache().store(source.getConfig().name(), z, x, y, new ByteArrayInputStream(contents), fetchResult.mediaType());
-                        System.out.println("cache miss");
                         return TileResult.ofFetchResult(fetchResult, new ByteArrayInputStream(contents));
                     }
                 }
             }
 
-            System.out.println("cache hit");
             return TileResult.ofCacheResult(cacheResult);
         }
 
-        System.out.println("cache miss");
         return TileResult.ofFetchResult(fetchTile(source, z, x, y));
     }
 
