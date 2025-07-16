@@ -1,4 +1,4 @@
-package com.github.bitfexl.tms;
+package com.github.bitfexl.tmsproxy.tms.cache;
 
 import com.github.bitfexl.tmsproxy.config.TileCacheConfig;
 import lombok.Getter;
@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Path;
 
 public class FilesystemTileCache implements TileCache {
     @Getter

@@ -1,8 +1,13 @@
-package com.github.bitfexl.tms;
+package com.github.bitfexl.tmsproxy.tms;
 
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.github.bitfexl.tmsproxy.config.TileCacheConfig;
 import com.github.bitfexl.tmsproxy.config.TileSourceConfig;
+import com.github.bitfexl.tmsproxy.tms.cache.TileCache;
+import com.github.bitfexl.tmsproxy.tms.cache.TileCacheResult;
+import com.github.bitfexl.tmsproxy.tms.source.TileHTTPClient;
+import com.github.bitfexl.tmsproxy.tms.source.TileSource;
+import com.github.bitfexl.tmsproxy.tms.source.TileSourceUrl;
 import lombok.SneakyThrows;
 
 import java.io.ByteArrayInputStream;

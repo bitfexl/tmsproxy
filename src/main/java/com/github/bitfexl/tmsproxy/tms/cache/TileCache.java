@@ -1,4 +1,4 @@
-package com.github.bitfexl.tms;
+package com.github.bitfexl.tmsproxy.tms.cache;
 
 import com.github.bitfexl.tmsproxy.config.TileCacheConfig;
 

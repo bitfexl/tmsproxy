@@ -1,12 +1,10 @@
-package com.github.bitfexl;
+package com.github.bitfexl.tmsproxy;
 
-import com.github.bitfexl.tms.TMSRepository;
+import com.github.bitfexl.tmsproxy.tms.TMSRepository;
 import com.github.bitfexl.tmsproxy.config.Config;
 import com.google.gson.Gson;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Objects;
 
 import io.undertow.Undertow;

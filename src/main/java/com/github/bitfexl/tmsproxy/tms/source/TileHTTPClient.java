@@ -1,4 +1,4 @@
-package com.github.bitfexl.tms;
+package com.github.bitfexl.tmsproxy.tms.source;
 
 import lombok.SneakyThrows;
 import okhttp3.OkHttpClient;

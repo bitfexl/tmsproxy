@@ -1,6 +1,7 @@
-package com.github.bitfexl.tms;
+package com.github.bitfexl.tmsproxy.tms.source;
 
 import com.github.bitfexl.tmsproxy.config.TileSourceConfig;
+import com.github.bitfexl.tmsproxy.tms.cache.TileCache;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
