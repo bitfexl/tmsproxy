@@ -7,6 +7,7 @@ import okhttp3.Response;
 
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.Map;
 
 public class TileHTTPClient {
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
@@ -32,11 +33,18 @@ public class TileHTTPClient {
     private final TileFetchResult NO_CONTENT = new TileFetchResult(false, true, null, 0, null);
 
     @SneakyThrows
-    public TileFetchResult fetch(String url) {
-        final Response response = httpClient.newCall(new Request.Builder().url(url).get().build()).execute();
+    public TileFetchResult fetch(String url, Map<String, String> headers) {
+        final Request.Builder request = new Request.Builder().url(url).get();
+        if (headers != null) {
+            headers.forEach(request::header);
+        }
+        final Response response = httpClient.newCall(request.build()).execute();
 
         if (response.code() < 200 || response.code() > 299) {
             try {
+                if (response.code() != 404) {
+                    System.err.println("Response code " + response.code() + " for " + url.split("\\?", 2)[0]);
+                }
                 return FAILURE;
             } finally {
                 response.close();

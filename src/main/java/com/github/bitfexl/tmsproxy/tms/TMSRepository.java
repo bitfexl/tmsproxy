@@ -127,7 +127,7 @@ public class TMSRepository {
 
         for (int i = 0; i < FETCH_TILE_MAX_RETRIES; i++) {
             final TileSourceUrl url = source.getSourceUrl();
-            result = httpClient.fetch(url.buildUrl(z, x, y));
+            result = httpClient.fetch(url.buildUrl(z, x, y), source.getConfig().headers());
             if (result.failure()) {
                 source.recordFailure(url);
             } else {

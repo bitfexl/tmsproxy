@@ -1,12 +1,14 @@
 package com.github.bitfexl.tmsproxy.config;
 
 import java.util.List;
+import java.util.Map;
 
 public record TileSourceConfig(
         String name,
         String cache,
         Integer minZoom,
         Integer maxZoom,
-        List<String> sources
+        List<String> sources,
+        Map<String, String> headers
 ) {
 }

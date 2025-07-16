@@ -15,14 +15,15 @@ import io.undertow.util.Headers;
 
 public class Main {
     public static void main(String[] args) throws FileNotFoundException {
-        final Config config = new Gson().fromJson(new FileReader("tmsconfig.json"), Config.class);
+        final String configFileName = args.length > 0 ? args[0] : "tmsconfig.json";
+        final Config config = new Gson().fromJson(new FileReader(configFileName), Config.class);
         final int port = Objects.requireNonNullElse(config.port(), 80);
         final TMSRepository tmsRepository = new TMSRepository(config);
 
         final int CACHE_MAX_AGE_SECONDS = 86400;
 
         final Undertow server = Undertow.builder()
-                .addHttpListener(port, "localhost")
+                .addHttpListener(port, "0.0.0.0")
                 .setHandler(new BlockingHandler(new HttpHandler() {
                     @Override
                     public void handleRequest(HttpServerExchange exchange) throws Exception {
