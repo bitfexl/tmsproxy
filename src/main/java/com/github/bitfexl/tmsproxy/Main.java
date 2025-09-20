@@ -34,8 +34,6 @@ public class Main {
                             return;
                         }
 
-                        // TODO: parse arguments asynchronously
-
                         String name;
                         int x, y, z;
 
@@ -73,6 +71,7 @@ public class Main {
                             if (result.fileContents() != null) {
                                 try (final OutputStream out = exchange.getOutputStream(); final InputStream in = result.fileContents()) {
                                     in.transferTo(out);
+                                } finally {
                                     return;
                                 }
                             }
@@ -81,6 +80,7 @@ public class Main {
                             if (result.filePath() != null) {
                                 try (final OutputStream out = exchange.getOutputStream(); final InputStream in = new FileInputStream(result.filePath())) {
                                     in.transferTo(out);
+                                } finally {
                                     return;
                                 }
                             }
@@ -88,8 +88,9 @@ public class Main {
                             exchange.endExchange();
                         } catch (Exception ex) {
                             ex.printStackTrace();
-                            exchange.setStatusCode(500).getResponseSender().send("Internal Server Error");
                         }
+
+                        exchange.endExchange();
                     }
                 }))
                 .build();
